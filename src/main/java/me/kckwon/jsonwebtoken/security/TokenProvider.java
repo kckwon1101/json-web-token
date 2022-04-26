@@ -1,20 +1,20 @@
 package me.kckwon.jsonwebtoken.security;
 
 import io.jsonwebtoken.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
+@Component
 public class TokenProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(TokenProvider.class);
-
-    private static final String TOKEN_HEADER = "Authorization";
-    private static final String TOKEN_SCHEMA = "Bearer ";
+    public static final String TOKEN_HEADER = "Authorization";
+    public static final String TOKEN_SCHEMA = "Bearer ";
 
     private static final String JWT_SECRET = "SECRET_KEY";
     private static final int JWT_EXPIRATION = 1000 * 3600 * 24 * 7;
@@ -55,15 +55,15 @@ public class TokenProvider {
             Jwts.parser().setSigningKey(JWT_SECRET).parseClaimsJws(authToken);
             return true;
         } catch (SignatureException ex) {
-            logger.error("Invalid JWT Signature");
+            log.error("Invalid JWT Signature");
         } catch (MalformedJwtException ex) {
-            logger.error("Invalid JWT Token");
+            log.error("Invalid JWT Token");
         } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT Token");
+            log.error("Expired JWT Token");
         } catch (UnsupportedJwtException ex) {
-            logger.error("Unsupported JWT Token");
+            log.error("Unsupported JWT Token");
         } catch (IllegalArgumentException ex) {
-            logger.error("JWT claims string is empty");
+            log.error("JWT claims string is empty");
         }
         return false;
     }

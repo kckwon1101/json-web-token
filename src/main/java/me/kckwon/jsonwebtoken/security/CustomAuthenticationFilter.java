@@ -1,6 +1,7 @@
 package me.kckwon.jsonwebtoken.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.kckwon.jsonwebtoken.user.domain.User;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -8,31 +9,25 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 
+import static me.kckwon.jsonwebtoken.security.TokenProvider.TOKEN_HEADER;
+import static me.kckwon.jsonwebtoken.security.TokenProvider.TOKEN_SCHEMA;
+
 
 @Slf4j
+@RequiredArgsConstructor
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
+    // We use auth manager to validate the user credentials
+    private final AuthenticationManager authManager;
     private final TokenProvider tokenProvider;
 
-    // We use auth manager to validate the user credentials
-    private AuthenticationManager authManager;
-
-
-    public CustomAuthenticationFilter(AuthenticationManager authManager, TokenProvider tokenProvider) {
-        this.authManager = authManager;
-        this.tokenProvider = tokenProvider;
-
-        this.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher("/login", "POST"));
-    }
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
@@ -61,6 +56,6 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
                                             Authentication authentication) {
         final String token = tokenProvider.createToken(authentication);
-        response.addHeader("Authorization", "Bearer " + token);
+        response.addHeader(TOKEN_HEADER, TOKEN_SCHEMA + token);
     }
 }

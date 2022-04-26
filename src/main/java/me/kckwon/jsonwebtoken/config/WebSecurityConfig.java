@@ -3,7 +3,6 @@ package me.kckwon.jsonwebtoken.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.kckwon.jsonwebtoken.security.CustomAuthenticationFilter;
-import me.kckwon.jsonwebtoken.security.CustomAuthenticationProvider;
 import me.kckwon.jsonwebtoken.security.CustomUserDetailsService;
 import me.kckwon.jsonwebtoken.security.TokenProvider;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final CustomUserDetailsService userDetailsService;
+    private final TokenProvider tokenProvider;
 
 
     @Override
@@ -31,7 +32,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
                 // handle an authorized attempts
-                .exceptionHandling().authenticationEntryPoint((req, rsp, e) -> rsp.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                .exceptionHandling()
+                .authenticationEntryPoint((req, rsp, e) -> rsp.sendError(HttpServletResponse.SC_UNAUTHORIZED))
             .and()
                 .formLogin().disable()
                 // Add a filter to validate user credentials and add token in the response header
@@ -39,7 +41,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 // What's the authenticationManager()?
                 // An object provided by WebSecurityConfigurerAdapter, used to authenticate the user passing user's credentials
                 // The filter needs this auth manager to authenticate the user.
-                .addFilter(new CustomAuthenticationFilter(authenticationManager(), new TokenProvider()))
+                .addFilter(new CustomAuthenticationFilter(authenticationManager(), tokenProvider))
             .authorizeRequests()
                 .anyRequest()
                 .permitAll();
@@ -48,6 +50,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CustomAuthenticationFilter authenticationFilter() throws Exception {
+        CustomAuthenticationFilter filter = new CustomAuthenticationFilter(authenticationManager(), new TokenProvider());
+        filter.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher("/login", "POST"));
+        return filter;
     }
 
     @Override
