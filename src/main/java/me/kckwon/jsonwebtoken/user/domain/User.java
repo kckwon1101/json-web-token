@@ -1,6 +1,5 @@
 package me.kckwon.jsonwebtoken.user.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,7 +20,6 @@ public class User {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @JsonIgnore
     @Column
     private String password;
 
