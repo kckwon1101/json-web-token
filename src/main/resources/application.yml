@@ -16,5 +16,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
-jwt:
-  secret: SETCRET_KEY
+app:
+  jwtToken:
+    loginUri: /auth/login
+    loginMethod: POST
+    header: Authorization
+    schema: Bearer
+    expiration: 864000000
+    secret: SETCRET_KEY

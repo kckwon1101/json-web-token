@@ -21,6 +21,8 @@ import javax.servlet.http.HttpServletResponse;
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final CustomUserDetailsService userDetailsService;
+    private final TokenProvider tokenProvider;
+    private final AppProperties appProperties;
 
 
     @Override
@@ -38,7 +40,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 // What's the authenticationManager()?
                 // An object provided by WebSecurityConfigurerAdapter, used to authenticate the user passing user's credentials
                 // The filter needs this auth manager to authenticate the user.
-                .addFilter(new CustomAuthenticationFilter(authenticationManager(), tokenProvider()))
+                .addFilter(new CustomAuthenticationFilter(authenticationManager(), tokenProvider, appProperties))
             .authorizeRequests()
                 .anyRequest()
                 .permitAll();
@@ -47,11 +49,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public TokenProvider tokenProvider() {
-        return new TokenProvider();
     }
 
     @Override

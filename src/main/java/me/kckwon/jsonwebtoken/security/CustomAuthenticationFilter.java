@@ -1,8 +1,8 @@
 package me.kckwon.jsonwebtoken.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.kckwon.jsonwebtoken.config.AppProperties;
 import me.kckwon.jsonwebtoken.user.domain.User;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,8 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 
-import static me.kckwon.jsonwebtoken.constant.JwtConstant.*;
-
 
 @Slf4j
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
@@ -26,12 +24,16 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     // We use auth manager to validate the user credentials
     private final AuthenticationManager authManager;
     private final TokenProvider tokenProvider;
+    private final AppProperties appProperties;
 
-    public CustomAuthenticationFilter(AuthenticationManager authManager, TokenProvider tokenProvider) {
+    public CustomAuthenticationFilter(AuthenticationManager authManager, TokenProvider tokenProvider,
+                                      AppProperties appProperties) {
         this.authManager = authManager;
         this.tokenProvider = tokenProvider;
+        this.appProperties = appProperties;
 
-        this.setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher(LOGIN_URI, LOGIN_METHOD));
+        this.setRequiresAuthenticationRequestMatcher(
+                new AntPathRequestMatcher(appProperties.getJwtToken().getLoginUri(), appProperties.getJwtToken().getLoginMethod()));
     }
 
 
@@ -62,6 +64,6 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
                                             Authentication authentication) {
         final String token = tokenProvider.createToken(authentication);
-        response.addHeader(HEADER, SCHEMA + token);
+        response.addHeader(appProperties.getJwtToken().getHeader(), appProperties.getJwtToken().getSchema() + token);
     }
 }
