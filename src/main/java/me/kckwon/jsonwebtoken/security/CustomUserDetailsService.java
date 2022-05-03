@@ -1,7 +1,6 @@
 package me.kckwon.jsonwebtoken.security;
 
 import lombok.RequiredArgsConstructor;
-import me.kckwon.jsonwebtoken.exception.ResourceNotFoundException;
 import me.kckwon.jsonwebtoken.user.domain.User;
 import me.kckwon.jsonwebtoken.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,12 +15,12 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
+
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String name)
-            throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String name) throws UsernameNotFoundException {
         User user = userRepository.findByName(name)
-                .orElseThrow(() -> new UsernameNotFoundException("Not found user : " + name));
+                .orElseThrow(() -> new UsernameNotFoundException("해당 사용자를 찾을 수 없습니다 : " + name));
 
         return UserPrincipal.create(user);
     }

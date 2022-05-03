@@ -2,9 +2,7 @@ package me.kckwon.jsonwebtoken.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.kckwon.jsonwebtoken.security.CustomAuthenticationFilter;
-import me.kckwon.jsonwebtoken.security.CustomUserDetailsService;
-import me.kckwon.jsonwebtoken.security.TokenProvider;
+import me.kckwon.jsonwebtoken.security.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -23,6 +22,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     private final CustomUserDetailsService userDetailsService;
     private final TokenProvider tokenProvider;
     private final AppProperties appProperties;
+    private final TokenAuthenticationFilter tokenAuthenticationFilter;
 
 
     @Override
@@ -31,19 +31,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
-                // handle an authorized attempts
-                .exceptionHandling().authenticationEntryPoint((req, rsp, e) -> rsp.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                .exceptionHandling()
+                .authenticationEntryPoint((req, res, e) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+            .and()
+                .authorizeRequests()
+                .anyRequest()
+                .authenticated()
             .and()
                 .formLogin().disable()
-                // Add a filter to validate user credentials and add token in the response header
-
-                // What's the authenticationManager()?
-                // An object provided by WebSecurityConfigurerAdapter, used to authenticate the user passing user's credentials
-                // The filter needs this auth manager to authenticate the user.
-                .addFilter(new CustomAuthenticationFilter(authenticationManager(), tokenProvider, appProperties))
-            .authorizeRequests()
-                .anyRequest()
-                .permitAll();
+                // addFilterBefore : security filter chain 중 특정 필터 이전에 별도 등록
+                .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // addFilter : security filter chain 으로 구성된 필터를 상속받아 커스터마이징하여 대체
+                // authenticationManager()은 WebSecurityConfigurerAdapter에서 기본으로 제공.
+                // AuthenticationProvider를 직접 생성하여 authenticationManagerBuilder로 구성해도 되고,
+                // AuthenticationManagerBuilder에
+                //   AuthenticationProvider를 직접 생성하여 넘겨줘도 되고,
+                //   UserDetailsService와 PasswordEncoder를 넘겨줘도 된다.
+                .addFilter(new CustomAuthenticationFilter(authenticationManager(), tokenProvider, appProperties));
     }
 
     @Bean
@@ -51,8 +55,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 
+    @Bean
+    public CustomAuthenticationProvider customAuthenticationProvider() {
+        return new CustomAuthenticationProvider(userDetailsService, passwordEncoder());
+    }
+
     @Override
-    public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
-        authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+    public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) {
+        authenticationManagerBuilder.authenticationProvider(customAuthenticationProvider());
     }
 }

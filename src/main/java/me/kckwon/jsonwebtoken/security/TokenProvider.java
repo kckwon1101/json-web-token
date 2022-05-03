@@ -5,11 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.kckwon.jsonwebtoken.config.AppProperties;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -26,8 +28,8 @@ public class TokenProvider {
         Date expiryDate = new Date(now.getTime() + appProperties.getJwtToken().getExpiration());
 
         return Jwts.builder()
-                .setSubject(Long.toString(userPrincipal.getId()))
-                .setClaims(createClaims(userPrincipal))
+                .setClaims(createClaims(userPrincipal)) // setClaims() 는 앞에서 설정한 claim 을 초기화 한다.
+                .setSubject(userPrincipal.getName())
                 .setIssuedAt(new Date())
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, appProperties.getJwtToken().getSecret())
@@ -36,17 +38,18 @@ public class TokenProvider {
 
     private Map<String, Object> createClaims(UserPrincipal user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("name", user.getName());
+        claims.put("authorities", user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority).collect(Collectors.toList()));
         return claims;
     }
 
-    public Long getUserIdFromToken(String token) {
+    public String getUsernameFromToken(String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(appProperties.getJwtToken().getSecret())
                 .parseClaimsJws(token)
                 .getBody();
 
-        return Long.parseLong(claims.getSubject());
+        return claims.getSubject();
     }
 
     public boolean validateToken(String authToken) {

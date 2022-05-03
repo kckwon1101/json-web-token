@@ -21,7 +21,6 @@ import java.util.Collections;
 @Slf4j
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
-    // We use auth manager to validate the user credentials
     private final AuthenticationManager authManager;
     private final TokenProvider tokenProvider;
     private final AppProperties appProperties;
@@ -33,7 +32,8 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
         this.appProperties = appProperties;
 
         this.setRequiresAuthenticationRequestMatcher(
-                new AntPathRequestMatcher(appProperties.getJwtToken().getLoginUri(), appProperties.getJwtToken().getLoginMethod()));
+                new AntPathRequestMatcher(appProperties.getJwtToken().getLoginUri(),
+                        appProperties.getJwtToken().getLoginMethod()));
     }
 
 
@@ -41,29 +41,30 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
             throws AuthenticationException {
         try {
-            // 1. Get credentials from request
+            log.info("로그인 시도");
+
             User user = new ObjectMapper().readValue(request.getInputStream(), User.class);
 
-            // 2. Create auth object (contains credentials) which will be used by auth manager
+            // AuthenticationManager가 사용할 인증 객체 생성
             UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(
                     user.getName(), user.getPassword(), Collections.emptyList());
             setDetails(request, authRequest);
 
-            // 3. Authentication manager authenticate the user, and use UserDetialsServiceImpl::loadUserByUsername() method to load the user.
+            // AuthenticationManager를 따로 구성하지 않을 경우
+            // WebSecurityConfigurerAdapter에서 기본적으로 제공하는 DaoAuthenticationProvider가 인증처리를 함.
+            //   (UserDetailsService와 PasswordEncoder는 필요)
             return authManager.authenticate(authRequest);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
-            // throw new BadRequestException("Invalid name or password");
         }
     }
 
-    // Upon successful authentication, generate a token.
-    // The 'auth' passed to successfulAuthentication() is the current authenticated user.
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
                                             Authentication authentication) {
         final String token = tokenProvider.createToken(authentication);
-        response.addHeader(appProperties.getJwtToken().getHeader(), appProperties.getJwtToken().getSchema() + token);
+        response.addHeader(appProperties.getJwtToken().getHeader(),
+                appProperties.getJwtToken().getSchema() + " " + token);
     }
 }
